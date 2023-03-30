@@ -23,13 +23,24 @@ let currentRoot = null // 渲染成功之后当前根RootFiber
 let deletions = [] // 删除的节点不放effect list，需要单独记录并执行
 
 export function scheduleRoot(rootFiber) {
-  if (currentRoot) {
+  if (currentRoot && currentRoot.alternate) {
+    // 多次渲染，双缓存机制，复用上一次的currentRoot
+    workInProgressRoot = currentRoot.alternate
+    workInProgressRoot.props = rootFiber.props
+    workInProgressRoot.alternate = currentRoot
+  } else if (currentRoot) {
+    // 第二次渲染
     rootFiber.alternate = currentRoot
     workInProgressRoot = rootFiber
   } else {
+    // 第一次渲染
     workInProgressRoot = rootFiber
   }
-  nextUnitOfWork = rootFiber
+  workInProgressRoot.firstEffect =
+    workInProgressRoot.lastEffect =
+    workInProgressRoot.nextEffect =
+      null
+  nextUnitOfWork = workInProgressRoot
 }
 
 function performUnitOfWork(currentFiber) {
@@ -150,15 +161,24 @@ function reconcileChildren(currentFiber, newChildren) {
     }
 
     if (sameType) {
-      newFiber = {
-        tag: oldFiber.tag,
-        type: oldFiber.type,
-        props: newChild.props,
-        stateNode: oldFiber.stateNode,
-        return: currentFiber,
-        alternate: oldFiber,
-        effectTag: UPDATE,
-        nextEffect: null,
+      if (oldFiber.alternate) {
+        // 多次渲染
+        newFiber = oldFiber.alternate
+        newFiber.props = newChild.props
+        newFiber.alternate = oldFiber
+        newFiber.effectTag = UPDATE
+        newFiber.nextEffect = null
+      } else {
+        newFiber = {
+          tag: oldFiber.tag,
+          type: oldFiber.type,
+          props: newChild.props,
+          stateNode: oldFiber.stateNode,
+          return: currentFiber,
+          alternate: oldFiber,
+          effectTag: UPDATE,
+          nextEffect: null,
+        }
       }
     } else {
       if (newChild) {
