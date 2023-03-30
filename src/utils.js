@@ -1,8 +1,18 @@
 export function setProps(dom, oldProps, newProps) {
-  Object.keys(oldProps).forEach((key) => {})
+  Object.keys(oldProps).forEach((key) => {
+    if (key !== "children") {
+      if (newProps.hasOwnProperty(key)) {
+        setProp(dom, key, newProps[key])
+      } else {
+        dom.removeAttribute(key)
+      }
+    }
+  })
   Object.keys(newProps).forEach((key) => {
     if (key !== "children") {
-      setProp(dom, key, newProps[key])
+      if (!oldProps.hasOwnProperty(key)) {
+        setProp(dom, key, newProps[key])
+      }
     }
   })
 }

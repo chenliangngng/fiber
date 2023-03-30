@@ -12,14 +12,23 @@ import {
   TAG_ROOT,
   TAG_TEXT,
   PLACEMENT,
+  DELETION,
+  UPDATE,
 } from "./constants"
 import { setProps } from "./utils"
 
 let nextUnitOfWork = null
 let workInProgressRoot = null // RootFiber应用的根
+let currentRoot = null // 渲染成功之后当前根RootFiber
+let deletions = [] // 删除的节点不放effect list，需要单独记录并执行
 
 export function scheduleRoot(rootFiber) {
-  workInProgressRoot = rootFiber
+  if (currentRoot) {
+    rootFiber.alternate = currentRoot
+    workInProgressRoot = rootFiber
+  } else {
+    workInProgressRoot = rootFiber
+  }
   nextUnitOfWork = rootFiber
 }
 
@@ -125,24 +134,53 @@ function updateHostRoot(currentFiber) {
  */
 function reconcileChildren(currentFiber, newChildren) {
   let newChildIndex = 0 // 新子节点的索引
+  let oldFiber = currentFiber.alternate && currentFiber.alternate.child
   let prevSibling // 上一个新的子fiber
-  while (newChildIndex < newChildren.length) {
+  while (newChildIndex < newChildren.length || oldFiber) {
     let newChild = newChildren[newChildIndex]
+    let newFiber
+    const sameType = oldFiber && newChild && oldFiber.type === newChild.type
     let tag
-    if (newChild.type === ELEMENT_TEXT) {
-      tag = TAG_TEXT
-    } else if (typeof newChild.type === "string") {
-      tag = TAG_HOST
+    if (newChild) {
+      if (newChild.type === ELEMENT_TEXT) {
+        tag = TAG_TEXT
+      } else if (typeof newChild.type === "string") {
+        tag = TAG_HOST
+      }
     }
-    let newFiber = {
-      tag,
-      type: newChild.type,
-      props: newChild.props,
-      stateNode: null, // 暂未创建元素
-      return: currentFiber,
-      effectTag: PLACEMENT,
-      nextEffect: null, // effect list 也是一个单链表
+
+    if (sameType) {
+      newFiber = {
+        tag: oldFiber.tag,
+        type: oldFiber.type,
+        props: newChild.props,
+        stateNode: oldFiber.stateNode,
+        return: currentFiber,
+        alternate: oldFiber,
+        effectTag: UPDATE,
+        nextEffect: null,
+      }
+    } else {
+      if (newChild) {
+        newFiber = {
+          tag,
+          type: newChild.type,
+          props: newChild.props,
+          stateNode: null, // 暂未创建元素
+          return: currentFiber,
+          effectTag: PLACEMENT,
+          nextEffect: null, // effect list 也是一个单链表
+        }
+      }
+      if (oldFiber) {
+        oldFiber.effectTag = DELETION
+        deletions.push(oldFiber)
+      }
     }
+    if (oldFiber) {
+      oldFiber = oldFiber.sibling
+    }
+
     if (newFiber) {
       if (newChildIndex === 0) {
         currentFiber.child = newFiber
@@ -172,12 +210,14 @@ function workLoop(deadline) {
 }
 
 function commitRoot() {
-  console.log(workInProgressRoot)
+  deletions.forEach(commitWork) // 执行effect list之前先把该删除的元素删除
   let currentFiber = workInProgressRoot.firstEffect
   while (currentFiber) {
     commitWork(currentFiber)
     currentFiber = currentFiber.nextEffect
   }
+  deletions.length = 0 // 清空deletion
+  currentRoot = workInProgressRoot
   workInProgressRoot = null
 }
 
@@ -187,6 +227,20 @@ function commitWork(currentFiber) {
   const returnDOM = returnFiber.stateNode
   if (currentFiber.effectTag === PLACEMENT) {
     returnDOM.appendChild(currentFiber.stateNode)
+  } else if (currentFiber.effectTag === DELETION) {
+    returnDOM.removeChild(currentFiber.stateNode)
+  } else if (currentFiber.effectTag === UPDATE) {
+    if (currentFiber.type === ELEMENT_TEXT) {
+      if (currentFiber.alternate.props.text !== currentFiber.props.text) {
+        currentFiber.stateNode.textContent = currentFiber.props.text
+      }
+    } else {
+      updateDOM(
+        currentFiber.stateNode,
+        currentFiber.alternate.props,
+        currentFiber.props
+      )
+    }
   }
   currentFiber.effectTag = null
 }
