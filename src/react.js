@@ -1,4 +1,6 @@
 import { ELEMENT_TEXT } from "./constants"
+import { scheduleRoot } from "./scheduler"
+import { Update, UpdateQueue } from "./UpdateQueue"
 
 function createElement(type, config, ...children) {
   delete config.__self // babel编译，这里简化
@@ -20,8 +22,24 @@ function createElement(type, config, ...children) {
   return node
 }
 
+class Component {
+  constructor(props) {
+    this.props = props
+    // this.updateQueue = new UpdateQueue()
+  }
+  setState(payload) {
+    const update = new Update(payload)
+    // updateQueue放在此类组件对应的fiber节点的internalFiber
+    this.internalFiber.updateQueue.enqueueUpdate(update)
+    // this.updateQueue.enqueueUpdate(update)
+    scheduleRoot()
+  }
+}
+Component.prototype.isReactComponent = {}
+
 const React = {
   createElement,
+  Component,
 }
 
 export default React
