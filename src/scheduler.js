@@ -15,15 +15,17 @@ import {
   DELETION,
   UPDATE,
   TAG_CLASS,
-  TAG_FUNCTION,
+  TAG_FUNCTION_COMPONENT,
 } from "./constants"
-import { UpdateQueue } from "./UpdateQueue"
+import { Update, UpdateQueue } from "./UpdateQueue"
 import { setProps } from "./utils"
 
 let nextUnitOfWork = null
 let workInProgressRoot = null // RootFiber应用的根
 let currentRoot = null // 渲染成功之后当前根RootFiber
 let deletions = [] // 删除的节点不放effect list，需要单独记录并执行
+let workInProgressFiber = null // 正在工作的fiber
+let hookIndex = 0 // hooks索引
 
 export function scheduleRoot(rootFiber) {
   if (currentRoot && currentRoot.alternate) {
@@ -113,8 +115,17 @@ function beginWork(currentFiber) {
     updateHost(currentFiber)
   } else if (currentFiber.tag === TAG_CLASS) {
     updateClassComponent(currentFiber)
-  } else if (currentFiber.tag === TAG_FUNCTION) {
+  } else if (currentFiber.tag === TAG_FUNCTION_COMPONENT) {
+    updateFunctionComponent(currentFiber)
   }
+}
+
+function updateFunctionComponent(currentFiber) {
+  workInProgressFiber = currentFiber
+  hookIndex = 0
+  workInProgressFiber.hooks = []
+  const newChildren = [currentFiber.type(currentFiber.props)]
+  reconcileChildren(currentFiber, newChildren)
 }
 
 function updateClassComponent(currentFiber) {
@@ -162,7 +173,7 @@ function createDOM(currentFiber) {
 }
 
 function updateDOM(stateNode, oldProps, newProps) {
-  if (stateNode.setAttribute) {
+  if (stateNode?.setAttribute) {
     setProps(stateNode, oldProps, newProps)
   }
 }
@@ -193,6 +204,11 @@ function reconcileChildren(currentFiber, newChildren) {
         newChild.type.prototype.isReactComponent
       ) {
         tag = TAG_CLASS
+      } else if (
+        typeof newChild.type === "function" &&
+        !newChild.type.prototype.isReactComponent
+      ) {
+        tag = TAG_FUNCTION_COMPONENT
       } else if (newChild.type === ELEMENT_TEXT) {
         tag = TAG_TEXT
       } else if (typeof newChild.type === "string") {
@@ -328,4 +344,31 @@ function commitDeletion(currentFiber, returnDOM) {
   }
 }
 
+export function useReducer(reducer, initialValue) {
+  let newHook = workInProgressFiber?.alternate?.hooks?.[hookIndex]
+  if (newHook) {
+    // 第二次渲染
+    newHook.state = newHook.updateQueue.forceUpdate(newHook.state)
+  } else {
+    newHook = {
+      state: initialValue,
+      updateQueue: new UpdateQueue(),
+    }
+  }
+  const dispatch = (action) => {
+    const payload = reducer ? reducer(newHook.state, action) : action
+    newHook.updateQueue.enqueueUpdate(new Update(payload))
+    scheduleRoot()
+  }
+  workInProgressFiber.hooks[hookIndex] = newHook
+  hookIndex++
+  return [newHook.state, dispatch]
+}
+
+export function useState(initialValue) {
+  return useReducer(null, initialValue)
+}
+
+// 浏览器空闲时候执行
+// 有个优先级概念expirationTime
 requestIdleCallback(workLoop, { timeout: 500 })

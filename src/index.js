@@ -19,7 +19,41 @@ class ClassCounter extends React.Component {
   }
 }
 
+const ADD = "ADD"
+function reducer(state, action) {
+  switch (action.type) {
+    case ADD:
+      return { count: state.count + 1 }
+    default:
+      return state
+  }
+}
+
+function FunctionCounter(props) {
+  const [countState, dispatch] = React.useReducer(reducer, { count: 0 })
+  const [numberState, setNumberState] = React.useState({ number: 10 })
+
+  const onClick = () => {
+    dispatch({ type: ADD })
+  }
+  return React.createElement(
+    "div",
+    { id: "counter" },
+    React.createElement("span", {}, countState.count),
+    React.createElement("button", { onClick }, "加1"),
+    React.createElement("div", {}),
+    React.createElement("span", {}, numberState.number),
+    React.createElement(
+      "button",
+      {
+        onClick: () => setNumberState({ number: numberState.number - 1 }),
+      },
+      "-1"
+    )
+  )
+}
+
 ReactDOM.render(
-  React.createElement(ClassCounter, { name: "计数器" }),
+  React.createElement(FunctionCounter, { name: "计数器" }),
   document.getElementById("root")
 )

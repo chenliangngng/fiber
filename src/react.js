@@ -1,5 +1,5 @@
 import { ELEMENT_TEXT } from "./constants"
-import { scheduleRoot } from "./scheduler"
+import { scheduleRoot, useReducer, useState } from "./scheduler"
 import { Update, UpdateQueue } from "./UpdateQueue"
 
 function createElement(type, config, ...children) {
@@ -40,6 +40,8 @@ Component.prototype.isReactComponent = {}
 const React = {
   createElement,
   Component,
+  useReducer,
+  useState,
 }
 
 export default React
