@@ -16,6 +16,7 @@ import {
   UPDATE,
   TAG_CLASS,
   TAG_FUNCTION_COMPONENT,
+  TAG_MEMO,
 } from "./constants"
 import { Update, UpdateQueue } from "./UpdateQueue"
 import { setProps } from "./utils"
@@ -117,6 +118,20 @@ function beginWork(currentFiber) {
     updateClassComponent(currentFiber)
   } else if (currentFiber.tag === TAG_FUNCTION_COMPONENT) {
     updateFunctionComponent(currentFiber)
+  } else if (currentFiber.tag === TAG_MEMO) {
+    updateMemoComponent(currentFiber)
+  }
+}
+
+function updateMemoComponent(currentFiber) {
+  workInProgressFiber = currentFiber
+  const { type, props, prevProps } = workInProgressFiber
+  if (!workInProgressFiber.type.compare(prevProps, props, "children")) {
+    hookIndex = 0
+    workInProgressFiber.hooks = []
+    workInProgressFiber.prevProps = workInProgressFiber.props
+    const newChildren = [currentFiber.type.type(currentFiber.props)]
+    reconcileChildren(currentFiber, newChildren)
   }
 }
 
@@ -202,7 +217,9 @@ function reconcileChildren(currentFiber, newChildren) {
     const sameType = oldFiber && newChild && oldFiber.type === newChild.type
     let tag
     if (newChild) {
-      if (
+      if (newChild.type.isMemo) {
+        tag = TAG_MEMO
+      } else if (
         typeof newChild.type === "function" &&
         newChild.type.prototype.isReactComponent
       ) {
@@ -288,7 +305,7 @@ function workLoop(deadline) {
     shouldYield = deadline.timeRemaining() < 1
   }
   if (!nextUnitOfWork && workInProgressRoot) {
-    console.log("render阶段结束")
+    // render阶段结束
     commitRoot()
   }
   requestIdleCallback(workLoop, { timeout: 500 })
@@ -373,6 +390,58 @@ export function useReducer(reducer, initialValue) {
 
 export function useState(initialValue) {
   return useReducer(null, initialValue)
+}
+
+export function useMemo(factory, deps) {
+  let newHook = workInProgressFiber?.alternate?.hooks?.[hookIndex]
+  if (newHook) {
+    // 第二次渲染
+    const [lastMemo, lastDeps] = newHook
+    const everySame = deps.every((item, index) => item === lastDeps[index])
+    if (everySame) {
+      hookIndex++
+      return lastMemo
+    } else {
+      const newMemo = factory()
+      newHook = [newMemo, deps]
+      workInProgressFiber.hooks[hookIndex] = newHook
+      hookIndex++
+
+      return newMemo
+    }
+  } else {
+    const newMemo = factory()
+    newHook = [newMemo, deps]
+    workInProgressFiber.hooks[hookIndex] = newHook
+    hookIndex++
+
+    return newMemo
+  }
+}
+
+export function useCallback(callback, deps) {
+  let newHook = workInProgressFiber?.alternate?.hooks?.[hookIndex]
+  if (newHook) {
+    // 第二次渲染
+    const [lastCallback, lastDeps] = newHook
+    const everySame = deps.every((item, index) => item === lastDeps[index])
+    if (everySame) {
+      hookIndex++
+      return lastCallback
+    } else {
+      newHook = [callback, deps]
+      workInProgressFiber.hooks[hookIndex] = newHook
+      hookIndex++
+
+      return callback
+    }
+  } else {
+    newHook = [callback, deps]
+    workInProgressFiber.hooks[hookIndex] = newHook
+    hookIndex++
+
+    return callback
+  }
 }
 
 // 浏览器空闲时候执行

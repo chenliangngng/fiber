@@ -1,6 +1,7 @@
-import { ELEMENT_TEXT } from "./constants"
-import { scheduleRoot, useReducer, useState } from "./scheduler"
+import { ELEMENT_TEXT, TAG_MEMO } from "./constants"
+import { scheduleRoot, useReducer, useState, useMemo } from "./scheduler"
 import { Update, UpdateQueue } from "./UpdateQueue"
+import { shallowEqual } from "./utils"
 
 function createElement(type, config, ...children) {
   if (config) {
@@ -44,12 +45,22 @@ class Component {
 }
 Component.prototype.isReactComponent = {}
 
+function memo(type, compare = shallowEqual) {
+  return {
+    isMemo: true,
+    type,
+    compare,
+  }
+}
+
 const React = {
   createElement,
   Component,
   useReducer,
   useState,
   createRef,
+  memo,
+  useMemo,
 }
 
 export default React

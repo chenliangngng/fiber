@@ -42,6 +42,17 @@ function reducer(state, action) {
   }
 }
 
+function ChildFunction({ numberState, handleClick }) {
+  console.log("ChildFunction render", numberState)
+  return React.createElement(
+    "button",
+    { onClick: handleClick },
+    numberState.number
+  )
+}
+
+const Child = React.memo(ChildFunction)
+
 function FunctionCounter(props) {
   const [countState, dispatch] = React.useReducer(reducer, { count: 0 })
   const [numberState, setNumberState] = React.useState({ number: 10 })
@@ -50,6 +61,11 @@ function FunctionCounter(props) {
     dispatch({ type: ADD })
     console.log("button冒泡")
   }
+  const minus = () => setNumberState({ number: setNumberState.number - 1 })
+  const memoNumber = React.useMemo(() => {
+    return numberState
+  }, [numberState.number])
+
   return React.createElement(
     "div",
     {
@@ -75,12 +91,17 @@ function FunctionCounter(props) {
         onClick: () => setNumberState({ number: numberState.number - 1 }),
       },
       "-1"
-    )
+    ),
+
+    React.createElement(ClassCounter, {}),
+    React.createElement(Child, {
+      numberState: memoNumber,
+      // handleClick: minus,
+    })
   )
 }
 
 ReactDOM.render(
-  // React.createElement(FunctionCounter, { name: "计数器" }),
-  React.createElement(ClassCounter, { name: "计数器" }),
+  React.createElement(FunctionCounter, { name: "计数器" }),
   document.getElementById("root")
 )

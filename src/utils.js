@@ -32,3 +32,30 @@ function setProp(dom, key, value) {
     dom.setAttribute(key, value)
   }
 }
+
+export function shallowEqual(obj1, obj2, exclude) {
+  if (obj1 === obj2) {
+    return true
+  }
+  if (
+    typeof obj1 !== "object" ||
+    obj1 === null ||
+    typeof obj2 !== "object" ||
+    obj2 === null
+  ) {
+    return false
+  }
+  const key1 = Object.keys(obj1)
+  const key2 = Object.keys(obj2)
+  if (key1.length !== key2.length) {
+    return false
+  }
+  const result = key1.filter(
+    (key) =>
+      key !== exclude && (!obj2.hasOwnProperty(key) || obj1[key] !== obj2[key])
+  )
+  if (result.length > 0) {
+    return false
+  }
+  return true
+}
