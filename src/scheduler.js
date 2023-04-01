@@ -167,6 +167,9 @@ function createDOM(currentFiber) {
     return document.createTextNode(currentFiber.props.text)
   } else if (currentFiber.tag === TAG_HOST) {
     let stateNode = document.createElement(currentFiber.type)
+    if (currentFiber.props.ref) {
+      currentFiber.props.ref.current = stateNode
+    }
     updateDOM(stateNode, {}, currentFiber.props)
     return stateNode
   }
@@ -261,6 +264,9 @@ function reconcileChildren(currentFiber, newChildren) {
     }
 
     if (newFiber) {
+      if (newFiber?.props?.ref) {
+        newFiber.props.ref.current = newFiber.stateNode
+      }
       if (newChildIndex === 0) {
         currentFiber.child = newFiber
       } else {

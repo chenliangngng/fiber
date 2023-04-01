@@ -3,8 +3,11 @@ import { scheduleRoot, useReducer, useState } from "./scheduler"
 import { Update, UpdateQueue } from "./UpdateQueue"
 
 function createElement(type, config, ...children) {
-  delete config.__self // babel编译，这里简化
-  delete config.__source // 表示这个元素再哪行哪列哪个文件生成的
+  if (config) {
+    delete config.__self // babel编译，这里简化
+    delete config.__source // 表示这个元素再哪行哪列哪个文件生成的
+  }
+
   const node = {
     type,
     props: {
@@ -20,6 +23,10 @@ function createElement(type, config, ...children) {
     },
   }
   return node
+}
+
+function createRef() {
+  return { current: null }
 }
 
 class Component {
@@ -42,6 +49,7 @@ const React = {
   Component,
   useReducer,
   useState,
+  createRef,
 }
 
 export default React

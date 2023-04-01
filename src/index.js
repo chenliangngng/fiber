@@ -1,20 +1,33 @@
 import React from "./react"
 import ReactDOM from "./react-dom"
 
+class ClassCounter2 extends React.Component {
+  constructor(props) {
+    super(props)
+  }
+  render() {
+    return React.createElement("div", { id: "counter2" }, 123)
+  }
+}
+
 class ClassCounter extends React.Component {
   constructor(props) {
     super(props)
     this.state = { number: 0 }
+    this.counterRef = React.createRef()
+    this.childRef = React.createRef()
   }
   onClick = () => {
     this.setState((state) => ({ number: state.number + 1 }))
+    console.log(this.counterRef, this.childRef)
   }
   render() {
     return React.createElement(
       "div",
-      { id: "counter" },
+      { id: "counter", ref: this.counterRef },
       React.createElement("span", {}, this.state.number),
-      React.createElement("button", { onClick: this.onClick }, "加1")
+      React.createElement("button", { onClick: this.onClick }, "加1"),
+      React.createElement(ClassCounter2)
     )
   }
 }
@@ -67,6 +80,7 @@ function FunctionCounter(props) {
 }
 
 ReactDOM.render(
-  React.createElement(FunctionCounter, { name: "计数器" }),
+  // React.createElement(FunctionCounter, { name: "计数器" }),
+  React.createElement(ClassCounter, { name: "计数器" }),
   document.getElementById("root")
 )
