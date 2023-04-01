@@ -1,3 +1,5 @@
+import { addEvent } from "./event"
+
 export function setProps(dom, oldProps, newProps) {
   Object.keys(oldProps).forEach((key) => {
     if (key !== "children") {
@@ -18,8 +20,8 @@ export function setProps(dom, oldProps, newProps) {
 }
 
 function setProp(dom, key, value) {
-  if (/^on/.test(key)) {
-    dom[key.toLowerCase()] = value
+  if (/^on[A-Z]/.test(key)) {
+    addEvent(dom, key, value)
   } else if (key === "style") {
     if (value) {
       Object.keys(value).forEach((styleName) => {

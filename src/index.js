@@ -35,12 +35,25 @@ function FunctionCounter(props) {
 
   const onClick = () => {
     dispatch({ type: ADD })
+    console.log("button冒泡")
   }
   return React.createElement(
     "div",
-    { id: "counter" },
+    {
+      id: "counter",
+      onClick: () => {
+        console.log("counter onClick")
+      },
+      onClickCapture: () => {
+        console.log("counter onClickCapture")
+      },
+    },
     React.createElement("span", {}, countState.count),
-    React.createElement("button", { onClick }, "加1"),
+    React.createElement(
+      "button",
+      { onClick, onClickCapture: () => console.log("button捕获") },
+      "加1"
+    ),
     React.createElement("div", {}),
     React.createElement("span", {}, numberState.number),
     React.createElement(
