@@ -1,12 +1,34 @@
 import React from "./react"
 import ReactDOM from "./react-dom"
 
+const CounterContext = React.createContext()
 class ClassCounter2 extends React.Component {
   constructor(props) {
     super(props)
   }
   render() {
-    return React.createElement("div", { id: "counter2" }, 123)
+    return React.createElement(
+      "div",
+      { id: "counter2" },
+      123,
+      React.createElement(
+        CounterContext.Consumer,
+        {},
+        {
+          type: (value) =>
+            React.createElement(
+              "div",
+              {
+                onClick: () => {
+                  console.log("s", value)
+                  value.dispatch({ state: value.state.state + 1 })
+                },
+              },
+              value.state.state + "s"
+            ),
+        }
+      )
+    )
   }
 }
 
@@ -54,6 +76,7 @@ function ChildFunction({ numberState, handleClick }) {
 const Child = React.memo(ChildFunction)
 
 function FunctionCounter(props) {
+  const { state, dispatch: contextDispatch } = React.useContext({})
   const [countState, dispatch] = React.useReducer(reducer, { count: 0 })
   const [numberState, setNumberState] = React.useState({ number: 10 })
 
@@ -77,6 +100,8 @@ function FunctionCounter(props) {
         console.log("counter onClickCapture")
       },
     },
+    React.createElement("div", {}, props?.state?.state),
+    React.createElement("div", {}, state?.state),
     React.createElement("span", {}, countState.count),
     React.createElement(
       "button",
@@ -101,7 +126,16 @@ function FunctionCounter(props) {
   )
 }
 
+function App() {
+  const [state, dispatch] = React.useState({ state: 33 })
+  return React.createElement(
+    CounterContext.Provider,
+    { value: { state, dispatch } },
+    React.createElement(FunctionCounter, {})
+  )
+}
+
 ReactDOM.render(
-  React.createElement(FunctionCounter, { name: "计数器" }),
+  React.createElement(App, { name: "计数器" }),
   document.getElementById("root")
 )

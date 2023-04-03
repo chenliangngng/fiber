@@ -1,4 +1,9 @@
-import { ELEMENT_TEXT, TAG_MEMO } from "./constants"
+import {
+  ELEMENT_CONTEXT,
+  ELEMENT_TEXT,
+  ELEMENT_PROVIDER,
+  TAG_MEMO,
+} from "./constants"
 import { scheduleRoot, useReducer, useState, useMemo } from "./scheduler"
 import { Update, UpdateQueue } from "./UpdateQueue"
 import { shallowEqual } from "./utils"
@@ -53,6 +58,17 @@ function memo(type, compare = shallowEqual) {
   }
 }
 
+function createContext() {
+  const context = { type: ELEMENT_CONTEXT }
+  context.Provider = { type: ELEMENT_PROVIDER, _context: context }
+  context.Consumer = { type: ELEMENT_CONTEXT, _context: context }
+  return context
+}
+
+function useContext(context) {
+  return context
+}
+
 const React = {
   createElement,
   Component,
@@ -61,6 +77,8 @@ const React = {
   createRef,
   memo,
   useMemo,
+  useContext,
+  createContext,
 }
 
 export default React

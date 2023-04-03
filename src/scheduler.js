@@ -17,6 +17,10 @@ import {
   TAG_CLASS,
   TAG_FUNCTION_COMPONENT,
   TAG_MEMO,
+  TAG_PROVIDER,
+  TAG_CONTEXT,
+  ELEMENT_PROVIDER,
+  ELEMENT_CONTEXT,
 } from "./constants"
 import { Update, UpdateQueue } from "./UpdateQueue"
 import { setProps } from "./utils"
@@ -120,7 +124,26 @@ function beginWork(currentFiber) {
     updateFunctionComponent(currentFiber)
   } else if (currentFiber.tag === TAG_MEMO) {
     updateMemoComponent(currentFiber)
+  } else if (currentFiber.tag === TAG_PROVIDER) {
+    updateProvider(currentFiber)
+  } else if (currentFiber.tag === TAG_CONTEXT) {
+    updateContext(currentFiber)
   }
+}
+
+function updateProvider(currentFiber) {
+  const { type, props } = currentFiber
+  type._context._currentValue = props.value
+  const newChildren = props.children
+  reconcileChildren(currentFiber, newChildren)
+}
+
+function updateContext(currentFiber) {
+  const { type, props } = currentFiber
+  const newChildren = props.children.map((child) =>
+    child.type(type._context._currentValue)
+  )
+  reconcileChildren(currentFiber, newChildren)
 }
 
 function updateMemoComponent(currentFiber) {
@@ -217,7 +240,11 @@ function reconcileChildren(currentFiber, newChildren) {
     const sameType = oldFiber && newChild && oldFiber.type === newChild.type
     let tag
     if (newChild) {
-      if (newChild.type.isMemo) {
+      if (newChild.type?.type === ELEMENT_PROVIDER) {
+        tag = TAG_PROVIDER
+      } else if (newChild.type?.type === ELEMENT_CONTEXT) {
+        tag = TAG_CONTEXT
+      } else if (newChild.type.isMemo) {
         tag = TAG_MEMO
       } else if (
         typeof newChild.type === "function" &&
@@ -292,6 +319,9 @@ function reconcileChildren(currentFiber, newChildren) {
       prevSibling = newFiber
     }
     newChildIndex++
+    if (!tag) {
+      debugger
+    }
   }
 }
 
@@ -333,13 +363,26 @@ function commitWork(currentFiber) {
   ) {
     returnFiber = returnFiber.return
   }
-  const returnDOM = returnFiber.stateNode
+  let returnDOM = returnFiber.stateNode
+  if (returnFiber.tag === TAG_PROVIDER) {
+    returnDOM = returnFiber.return.stateNode
+  }
   if (currentFiber.effectTag === PLACEMENT) {
     let nextFiber = currentFiber
     // 如果要挂载的节点不是DOM节点，比如类组件fiber，一直往下找到真实DOM节点为止
-    while (nextFiber.tag !== TAG_HOST && nextFiber.tag !== TAG_TEXT) {
-      nextFiber = currentFiber.child
+    try {
+      let i = 0
+      while (nextFiber.tag !== TAG_HOST && nextFiber.tag !== TAG_TEXT) {
+        nextFiber = nextFiber.child
+        i++
+        if (i === 1000) {
+          debugger
+        }
+      }
+    } catch (err) {
+      debugger
     }
+
     returnDOM.appendChild(nextFiber.stateNode)
   } else if (currentFiber.effectTag === DELETION) {
     commitDeletion(currentFiber, returnDOM)
