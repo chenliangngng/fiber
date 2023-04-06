@@ -66,7 +66,7 @@ function createContext() {
 }
 
 function useContext(context) {
-  return context
+  return context._currentValue
 }
 
 const React = {

@@ -76,7 +76,7 @@ function ChildFunction({ numberState, handleClick }) {
 const Child = React.memo(ChildFunction)
 
 function FunctionCounter(props) {
-  const { state, dispatch: contextDispatch } = React.useContext({})
+  const { state, dispatch: contextDispatch } = React.useContext(CounterContext)
   const [countState, dispatch] = React.useReducer(reducer, { count: 0 })
   const [numberState, setNumberState] = React.useState({ number: 10 })
 
