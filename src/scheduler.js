@@ -55,10 +55,13 @@ export function scheduleRoot(rootFiber) {
     // 第一次渲染
     workInProgressRoot = rootFiber
   }
-  workInProgressRoot.firstEffect =
-    workInProgressRoot.lastEffect =
-    workInProgressRoot.nextEffect =
-      null
+  if (workInProgressRoot) {
+    workInProgressRoot.firstEffect =
+      workInProgressRoot.lastEffect =
+      workInProgressRoot.nextEffect =
+        null
+  }
+
   nextUnitOfWork = workInProgressRoot
 }
 
@@ -484,6 +487,39 @@ export function useCallback(callback, deps) {
     hookIndex++
 
     return callback
+  }
+}
+
+export function useEffect(callback, deps) {
+  if (workInProgressFiber.type === TAG_MEMO) {
+    return
+  }
+  if (workInProgressFiber.hooks[hookIndex]) {
+    let [_, lastDeps, destroy] = workInProgressFiber.hooks[hookIndex]
+    const everySame = deps.every((item, index) => item === lastDeps[index])
+    console.log(everySame, "everySame")
+    if (everySame) {
+      hookIndex++
+    } else {
+      destroy?.()
+      ;((workInProgressFiber, hookIndex) => {
+        setTimeout(() => {
+          const destroy = callback()
+          workInProgressFiber.hooks[hookIndex] = [callback, deps, destroy]
+        })
+      })(workInProgressFiber, hookIndex)
+      hookIndex++
+    }
+  } else {
+    // 初次渲染时，开启宏任务，在宏任务执行callback
+    ;((workInProgressFiber, hookIndex) => {
+      setTimeout(() => {
+        const destroy = callback()
+        workInProgressFiber.hooks[hookIndex] = [callback, deps, destroy]
+      })
+    })(workInProgressFiber, hookIndex)
+    workInProgressFiber.hooks[hookIndex] = [callback, deps, null]
+    hookIndex++
   }
 }
 

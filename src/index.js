@@ -76,6 +76,7 @@ function ChildFunction({ numberState, handleClick }) {
 const Child = React.memo(ChildFunction)
 
 function FunctionCounter(props) {
+  console.log("FunctionCounter render")
   const { state, dispatch: contextDispatch } = React.useContext(CounterContext)
   const [countState, dispatch] = React.useReducer(reducer, { count: 0 })
   const [numberState, setNumberState] = React.useState({ number: 10 })
@@ -88,6 +89,11 @@ function FunctionCounter(props) {
   const memoNumber = React.useMemo(() => {
     return numberState
   }, [numberState.number])
+
+  // React.useEffect(() => {
+  // 这里有bug导致不停刷新组件
+  //   setNumberState({ number: 99999 })
+  // }, [numberState.number])
 
   return React.createElement(
     "div",

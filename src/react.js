@@ -4,7 +4,13 @@ import {
   ELEMENT_PROVIDER,
   TAG_MEMO,
 } from "./constants"
-import { scheduleRoot, useReducer, useState, useMemo } from "./scheduler"
+import {
+  scheduleRoot,
+  useReducer,
+  useState,
+  useMemo,
+  useEffect,
+} from "./scheduler"
 import { Update, UpdateQueue } from "./UpdateQueue"
 import { shallowEqual } from "./utils"
 
@@ -79,6 +85,7 @@ const React = {
   useMemo,
   useContext,
   createContext,
+  useEffect,
 }
 
 export default React
